@@ -1,29 +1,48 @@
 package org.example;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.*;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.time.Duration;
 import java.util.function.Function;
 
 public class Main extends Setup{
+    private static Document pdfDocument;
+    private static FileOutputStream pdfOutputStream;
 
     public static void main(String[] args) {
 
+        try {
+
+            initializePDF("Test_Report.pdf");
+
+            Main test = new Main();
+            test.testMail();
+            test.runTest();
+            test.testTo();
+            test.testThree();
+            test.testFour();
+            test.testActions();
+            test.testSelect("3");
 
 
-        Main test = new Main();
-        //test.testMail();
-        //test.runTest();
-        //test.testTo();
-        //test.testThree();
-        //test.testFour();
-        //test.testActions();
-        //test.testSelect("3");
+            finalizePDF();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
     public void testMail(){
@@ -46,9 +65,12 @@ public class Main extends Setup{
 
             mailRuPage.login("testing20252025@mail.ru", "1", "0", wait);
             System.out.println("Login successful!");
+            takeScreenshot("testMail_Login");
+            Thread.sleep(3000);
 
             mailRuPage.logout(wait);
             System.out.println("Logged out successfully!");
+            takeScreenshot("testMail_Logout");
         } catch (Exception e) {
             System.err.println("An error occurred during the test: " + e.getMessage());
         } finally {
@@ -87,6 +109,7 @@ public class Main extends Setup{
                     By.cssSelector("button[data-test-id='show-all-tickets-button']")
             ));
             System.out.println("The 'Show all tickets' button was found!");
+            takeScreenshot("runTest_ShowAllTicketsButton");
 
 
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", showAllTicketsButton);
@@ -95,6 +118,7 @@ public class Main extends Setup{
 
             Thread.sleep(5000);
             System.out.println("Tickets displayed.");
+            takeScreenshot("runTest_ShowAllTicketsButton");
 
             System.out.println("Test Passed: Successfully navigated to ticket results.");
             Thread.sleep(5000);
@@ -103,6 +127,45 @@ public class Main extends Setup{
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
             tearDown();
+        }
+    }
+
+    private static void initializePDF(String fileName) throws Exception {
+        pdfDocument = new Document();
+        pdfOutputStream = new FileOutputStream(fileName);
+        PdfWriter.getInstance(pdfDocument, pdfOutputStream);
+        pdfDocument.open();
+        pdfDocument.add(new Paragraph("Test Report"));
+        pdfDocument.add(new Paragraph("Generated on: " + java.time.LocalDateTime.now()));
+        pdfDocument.add(new Paragraph("\n"));
+    }
+    private void takeScreenshot(String testName) {
+        try {
+            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            String screenshotPath = "screenshots/" + testName + ".png";
+            Files.createDirectories(Paths.get("screenshots"));
+            Files.copy(screenshot.toPath(), Paths.get(screenshotPath));
+            addScreenshotToPDF(testName, screenshotPath);
+        } catch (IOException e) {
+            System.err.println("Failed to take screenshot: " + e.getMessage());
+        }
+    }
+
+    private void addScreenshotToPDF(String testName, String screenshotPath) {
+        try {
+            pdfDocument.add(new Paragraph("Test: " + testName));
+            pdfDocument.add(Image.getInstance(screenshotPath));
+            pdfDocument.add(new Paragraph("\n"));
+        } catch (Exception e) {
+            System.err.println("Failed to add screenshot to PDF: " + e.getMessage());
+        }
+    }
+    private static void finalizePDF() throws Exception {
+        if (pdfDocument != null) {
+            pdfDocument.close();
+        }
+        if (pdfOutputStream != null) {
+            pdfOutputStream.close();
         }
     }
 
@@ -126,6 +189,8 @@ public class Main extends Setup{
 
             WebElement searchButton = driver.findElement(By.cssSelector(".search-hover__submit"));
             searchButton.click();
+            System.out.println("Test Passed: Searched for laptops.");
+            takeScreenshot("testTo_SearchLaptops");
         } catch (Exception e) {
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
@@ -153,6 +218,8 @@ public class Main extends Setup{
 
 
             System.out.println("Test Passed: Successfully entered search query and clicked the search button.");
+
+            takeScreenshot("testThree_SearchSSD");
         } catch (Exception e) {
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
@@ -194,6 +261,7 @@ public class Main extends Setup{
 
 
             System.out.println("Test Passed: Successfully entered search query and clicked the search button.");
+            takeScreenshot("testFour_SearchПланшет");
         } catch (Exception e) {
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
@@ -219,6 +287,7 @@ public class Main extends Setup{
             Thread.sleep(3000);
 
             System.out.println("Test Passed: Successfully clicked the 'Каталог' button.");
+            takeScreenshot("testActions_Click");
         } catch (Exception e) {
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
@@ -244,7 +313,7 @@ public class Main extends Setup{
                     By.cssSelector(".city-default-list")
             ));
 
-          
+
             WebElement cityOption = dropdownMenu.findElement(
                     By.xpath(".//a[@data-city-id='" + cityId + "']")
             );
@@ -252,6 +321,7 @@ public class Main extends Setup{
 
             System.out.println("Test Passed: Successfully selected the city with ID " + cityId);
             Thread.sleep(3000);
+            takeScreenshot("testSelect_Click");
         } catch (Exception e) {
             System.err.println("Test Failed: " + e.getMessage());
         } finally {
